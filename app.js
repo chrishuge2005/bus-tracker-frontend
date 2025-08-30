@@ -7,7 +7,7 @@ let gpsWatchId = null;
 let currentPopupBusId = null;
 
 // Replace with your backend URL
-const API_BASE_URL = "http://10.60.139.237:8000";
+const API_BASE_URL = "https://bus-tracker-backend-96uu.onrender.com";
 
 // ================== DOM Elements ==================
 const busModal = document.getElementById('bus-modal');
