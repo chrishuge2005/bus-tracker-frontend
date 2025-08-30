@@ -6,6 +6,7 @@ let selectedBusId = null;
 let gpsWatchId = null;
 let currentPopupBusId = null;
 
+// Replace with your backend URL
 const API_BASE_URL = "https://bus-tracker-backend-96uu.onrender.com";
 
 // ================== DOM Elements ==================
@@ -17,7 +18,6 @@ const busSelectBtn = document.getElementById('bus-select-btn');
 const stopTrackingBtn = document.getElementById('stop-tracking');
 const closeModals = document.querySelectorAll('.close-modal');
 const cancelSelect = document.getElementById('cancel-select');
-const confirmSelect = document.getElementById('confirm-select');
 const connectAction = document.getElementById('connect-action');
 const viewAction = document.getElementById('view-action');
 const cancelAction = document.getElementById('cancel-action');
@@ -31,6 +31,11 @@ const debugContent = document.getElementById('debug-content');
 const zoomInBtn = document.getElementById('zoom-in');
 const zoomOutBtn = document.getElementById('zoom-out');
 const locateMeBtn = document.getElementById('locate-me');
+const busList = document.getElementById('bus-list');
+
+// ================== Authentication ==================
+const driverCredentials = { "driver123": "pass123" };
+const studentCredentials = { "student1": "pass1", "student2": "pass2" };
 
 // ================== Initialize Map ==================
 function initMap() {
@@ -70,16 +75,33 @@ async function fetchBuses() {
         document.getElementById('active-buses').textContent = Object.keys(busData).length;
         document.getElementById('total-buses').textContent = Object.keys(busData).length;
 
+        busList.innerHTML = ''; // clear bus list
+
         for (const busId in busData) {
             const bus = busData[busId];
             const position = [bus.lat, bus.lon];
 
+            // Add or update marker
             if (markers[busId]) {
                 markers[busId].setLatLng(position);
+                markers[busId].setPopupContent(`<b>${bus.name}</b><br>Status: ${bus.status}`);
             } else {
                 markers[busId] = L.marker(position).addTo(map)
                     .bindPopup(`<b>${bus.name}</b><br>Status: ${bus.status}`);
             }
+
+            // Add to bus list
+            const div = document.createElement('div');
+            div.classList.add('bus-item');
+            div.innerHTML = `
+                <div class="bus-icon"><i class="fas fa-bus"></i></div>
+                <div class="bus-info">
+                    <h3>${bus.name}</h3>
+                    <p>Status: ${bus.status}</p>
+                </div>
+            `;
+            div.addEventListener('click', () => openActionModal(busId));
+            busList.appendChild(div);
         }
     } catch (err) {
         console.error("Error fetching buses:", err);
@@ -163,18 +185,6 @@ async function sendLocationToServer(busId, lat, lon) {
     }
 }
 
-// ================== Authentication ==================
-const driverCredentials = { "driver123": "pass123" };
-const studentCredentials = { "student1": "pass1", "student2": "pass2" };
-
-function authenticateDriver(id, password) {
-    return driverCredentials[id] === password;
-}
-
-function authenticateUser(id, password) {
-    return studentCredentials[id] === password;
-}
-
 // ================== Modal Functionality ==================
 busSelectBtn.addEventListener('click', () => busModal.style.display = 'flex');
 
@@ -201,7 +211,7 @@ confirmDriverLogin.addEventListener('click', () => {
     const id = document.getElementById('driver-id').value;
     const password = document.getElementById('driver-password').value;
 
-    if (authenticateDriver(id, password)) {
+    if (driverCredentials[id] === password) {
         driverLoginModal.style.display = 'none';
         startLiveLocation(currentPopupBusId);
         showToast(`Driver connected to Bus ${currentPopupBusId}`);
@@ -216,7 +226,7 @@ confirmUserLogin.addEventListener('click', async () => {
     const id = document.getElementById('user-id').value;
     const password = document.getElementById('user-password').value;
 
-    if (authenticateUser(id, password)) {
+    if (studentCredentials[id] === password) {
         // Check if driver is connected
         const response = await fetch(`${API_BASE_URL}/buses`);
         const busData = await response.json();
