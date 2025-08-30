@@ -6,7 +6,6 @@ let selectedBusId = null;
 let gpsWatchId = null;
 let currentPopupBusId = null;
 
-// Replace with your backend URL
 const API_BASE_URL = "https://bus-tracker-backend-96uu.onrender.com";
 
 // ================== DOM Elements ==================
@@ -19,7 +18,6 @@ const stopTrackingBtn = document.getElementById('stop-tracking');
 const closeModals = document.querySelectorAll('.close-modal');
 const cancelSelect = document.getElementById('cancel-select');
 const confirmSelect = document.getElementById('confirm-select');
-const busOptions = document.querySelectorAll('.bus-option');
 const connectAction = document.getElementById('connect-action');
 const viewAction = document.getElementById('view-action');
 const cancelAction = document.getElementById('cancel-action');
@@ -33,9 +31,8 @@ const debugContent = document.getElementById('debug-content');
 const zoomInBtn = document.getElementById('zoom-in');
 const zoomOutBtn = document.getElementById('zoom-out');
 const locateMeBtn = document.getElementById('locate-me');
-let selectedBusOption = null;
 
-// ================== Init Map ==================
+// ================== Initialize Map ==================
 function initMap() {
     map = L.map("map").setView([12.9716, 77.5946], 13);
 
@@ -49,9 +46,7 @@ function initMap() {
     locateMeBtn.addEventListener('click', () => {
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition((position) => {
-                const lat = position.coords.latitude;
-                const lon = position.coords.longitude;
-                map.setView([lat, lon], 15);
+                map.setView([position.coords.latitude, position.coords.longitude], 15);
             });
         }
     });
@@ -59,24 +54,6 @@ function initMap() {
     debugToggle.addEventListener('click', () => {
         debugPanel.style.display = debugPanel.style.display === 'block' ? 'none' : 'block';
     });
-
-    // Populate bus list dynamically
-    const busList = document.getElementById('bus-list');
-    busList.innerHTML = '';
-    for (let i = 1; i <= 3; i++) {
-        const div = document.createElement('div');
-        div.classList.add('bus-item');
-        div.innerHTML = `
-            <div class="bus-icon"><i class="fas fa-bus"></i></div>
-            <div class="bus-info">
-                <h3>Bus ${i}</h3>
-                <p>Click to view options</p>
-            </div>
-            <span class="bus-status status-on-time">Available</span>
-        `;
-        div.addEventListener('click', () => openActionModal(i));
-        busList.appendChild(div);
-    }
 
     fetchBuses();
     setInterval(fetchBuses, 5000);
@@ -99,20 +76,9 @@ async function fetchBuses() {
 
             if (markers[busId]) {
                 markers[busId].setLatLng(position);
-                markers[busId].setPopupContent(`
-                    <b>${bus.name}</b><br>
-                    Status: ${bus.status}<br>
-                    Last Update: ${bus.lastUpdate}<br>
-                    <button onclick="openActionModal(${busId})" style="margin-top:10px;padding:5px 10px;background:#3498db;color:white;border:none;border-radius:3px;cursor:pointer;">Options</button>
-                `);
             } else {
                 markers[busId] = L.marker(position).addTo(map)
-                    .bindPopup(`
-                        <b>${bus.name}</b><br>
-                        Status: ${bus.status}<br>
-                        Last Update: ${bus.lastUpdate}<br>
-                        <button onclick="openActionModal(${busId})" style="margin-top:10px;padding:5px 10px;background:#3498db;color:white;border:none;border-radius:3px;cursor:pointer;">Options</button>
-                    `);
+                    .bindPopup(`<b>${bus.name}</b><br>Status: ${bus.status}`);
             }
         }
     } catch (err) {
@@ -128,7 +94,7 @@ function openActionModal(busId) {
     actionModal.style.display = 'flex';
 }
 
-// ================== User Live Location ==================
+// ================== Driver Live Location ==================
 function startLiveLocation(busId) {
     selectedBusId = busId;
 
@@ -187,33 +153,32 @@ function stopLiveLocation() {
 // ================== Send Location to Backend ==================
 async function sendLocationToServer(busId, lat, lon) {
     try {
-        const response = await fetch(`${API_BASE_URL}/update_location`, {
+        await fetch(`${API_BASE_URL}/update_location`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ bus_id: busId, lat: lat, lon: lon }),
+            body: JSON.stringify({ bus_id: busId, lat, lon, driverConnected: true }),
         });
-
-        const result = await response.json();
-        debugContent.innerHTML = `Location sent: ${JSON.stringify(result, null, 2)}`;
     } catch (err) {
         console.error("Error sending location:", err);
-        debugContent.innerHTML = "Error sending location: " + err.message;
     }
 }
 
-// ================== Authentication Functions ==================
-function authenticateDriver(driverId, password) {
-    return driverId === "driver123" && password === "pass123";
+// ================== Authentication ==================
+const driverCredentials = { "driver123": "pass123" };
+const studentCredentials = { "student1": "pass1", "student2": "pass2" };
+
+function authenticateDriver(id, password) {
+    return driverCredentials[id] === password;
 }
 
-function authenticateUser(userId, password) {
-    return userId && password;
+function authenticateUser(id, password) {
+    return studentCredentials[id] === password;
 }
 
 // ================== Modal Functionality ==================
 busSelectBtn.addEventListener('click', () => busModal.style.display = 'flex');
 
-closeModals.forEach(closeBtn => closeBtn.addEventListener('click', () => {
+closeModals.forEach(btn => btn.addEventListener('click', () => {
     document.querySelectorAll('.modal').forEach(modal => modal.style.display = 'none');
 }));
 
@@ -233,10 +198,10 @@ viewAction.addEventListener('click', () => {
 });
 
 confirmDriverLogin.addEventListener('click', () => {
-    const driverId = document.getElementById('driver-id').value;
+    const id = document.getElementById('driver-id').value;
     const password = document.getElementById('driver-password').value;
 
-    if (authenticateDriver(driverId, password)) {
+    if (authenticateDriver(id, password)) {
         driverLoginModal.style.display = 'none';
         startLiveLocation(currentPopupBusId);
         showToast(`Driver connected to Bus ${currentPopupBusId}`);
@@ -247,32 +212,38 @@ confirmDriverLogin.addEventListener('click', () => {
     }
 });
 
-confirmUserLogin.addEventListener('click', () => {
-    const userId = document.getElementById('user-id').value;
+confirmUserLogin.addEventListener('click', async () => {
+    const id = document.getElementById('user-id').value;
     const password = document.getElementById('user-password').value;
 
-    if (authenticateUser(userId, password)) {
+    if (authenticateUser(id, password)) {
+        // Check if driver is connected
+        const response = await fetch(`${API_BASE_URL}/buses`);
+        const busData = await response.json();
+        if (!busData[currentPopupBusId].driverConnected) {
+            showToast('Driver not connected. Cannot view live location.');
+            return;
+        }
+
         userLoginModal.style.display = 'none';
         showToast(`Viewing Bus ${currentPopupBusId} location`);
 
         if (markers[currentPopupBusId]) {
-            const position = markers[currentPopupBusId].getLatLng();
-            map.setView(position, 15);
+            map.setView(markers[currentPopupBusId].getLatLng(), 15);
         }
     } else {
-        showToast('Invalid user credentials');
+        showToast('Invalid student credentials');
     }
 });
 
 stopTrackingBtn.addEventListener('click', stopLiveLocation);
 
+// ================== Utility ==================
 function showToast(message) {
     const toast = document.getElementById('toast');
     const toastMessage = document.getElementById('toast-message');
-
     toastMessage.textContent = message;
     toast.classList.add('show');
-
     setTimeout(() => toast.classList.remove('show'), 3000);
 }
 
@@ -288,8 +259,8 @@ function updateGpsStatus(status) {
     else text.textContent = 'GPS Inactive';
 }
 
-// Expose to HTML buttons
+// Expose modal function to HTML
 window.openActionModal = openActionModal;
 
-// Initialize
+// ================== Initialize ==================
 document.addEventListener('DOMContentLoaded', initMap);
