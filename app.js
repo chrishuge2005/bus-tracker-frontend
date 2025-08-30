@@ -68,7 +68,16 @@ function initMap() {
 async function fetchBuses() {
     try {
         const response = await fetch(`${API_BASE_URL}/buses`);
-        const busData = await response.json();
+        let busData = await response.json();
+
+        // Handle array or object response
+        if (Array.isArray(busData)) {
+            const objData = {};
+            busData.forEach(bus => objData[bus.id] = bus);
+            busData = objData;
+        }
+
+        console.log('Fetched buses:', busData);
 
         debugContent.innerHTML = JSON.stringify(busData, null, 2);
         document.getElementById('last-update').textContent = new Date().toLocaleTimeString();
@@ -76,6 +85,11 @@ async function fetchBuses() {
         document.getElementById('total-buses').textContent = Object.keys(busData).length;
 
         busList.innerHTML = ''; // clear bus list
+
+        if (!busData || Object.keys(busData).length === 0) {
+            busList.innerHTML = '<p>No buses available</p>';
+            return;
+        }
 
         for (const busId in busData) {
             const bus = busData[busId];
@@ -106,6 +120,7 @@ async function fetchBuses() {
     } catch (err) {
         console.error("Error fetching buses:", err);
         debugContent.innerHTML = "Error fetching bus data: " + err.message;
+        busList.innerHTML = '<p>Error loading buses</p>';
     }
 }
 
@@ -230,7 +245,7 @@ confirmUserLogin.addEventListener('click', async () => {
         // Check if driver is connected
         const response = await fetch(`${API_BASE_URL}/buses`);
         const busData = await response.json();
-        if (!busData[currentPopupBusId].driverConnected) {
+        if (!busData[currentPopupBusId]?.driverConnected) {
             showToast('Driver not connected. Cannot view live location.');
             return;
         }
