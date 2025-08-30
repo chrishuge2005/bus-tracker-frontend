@@ -18,6 +18,8 @@ const busSelectBtn = document.getElementById('bus-select-btn');
 const stopTrackingBtn = document.getElementById('stop-tracking');
 const closeModals = document.querySelectorAll('.close-modal');
 const cancelSelect = document.getElementById('cancel-select');
+const confirmSelect = document.getElementById('confirm-select');
+const busOptions = document.querySelectorAll('.bus-option');
 const connectAction = document.getElementById('connect-action');
 const viewAction = document.getElementById('view-action');
 const cancelAction = document.getElementById('cancel-action');
@@ -31,13 +33,9 @@ const debugContent = document.getElementById('debug-content');
 const zoomInBtn = document.getElementById('zoom-in');
 const zoomOutBtn = document.getElementById('zoom-out');
 const locateMeBtn = document.getElementById('locate-me');
-const busList = document.getElementById('bus-list');
+let selectedBusOption = null;
 
-// ================== Authentication ==================
-const driverCredentials = { "driver123": "pass123" };
-const studentCredentials = { "student1": "pass1", "student2": "pass2" };
-
-// ================== Initialize Map ==================
+// ================== Init Map ==================
 function initMap() {
     map = L.map("map").setView([12.9716, 77.5946], 13);
 
@@ -51,7 +49,9 @@ function initMap() {
     locateMeBtn.addEventListener('click', () => {
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition((position) => {
-                map.setView([position.coords.latitude, position.coords.longitude], 15);
+                const lat = position.coords.latitude;
+                const lon = position.coords.longitude;
+                map.setView([lat, lon], 15);
             });
         }
     });
@@ -59,6 +59,24 @@ function initMap() {
     debugToggle.addEventListener('click', () => {
         debugPanel.style.display = debugPanel.style.display === 'block' ? 'none' : 'block';
     });
+
+    // Populate bus list dynamically
+    const busList = document.getElementById('bus-list');
+    busList.innerHTML = '';
+    for (let i = 1; i <= 3; i++) {
+        const div = document.createElement('div');
+        div.classList.add('bus-item');
+        div.innerHTML = `
+            <div class="bus-icon"><i class="fas fa-bus"></i></div>
+            <div class="bus-info">
+                <h3>Bus ${i}</h3>
+                <p>Click to view options</p>
+            </div>
+            <span class="bus-status status-on-time">Available</span>
+        `;
+        div.addEventListener('click', () => openActionModal(i));
+        busList.appendChild(div);
+    }
 
     fetchBuses();
     setInterval(fetchBuses, 5000);
@@ -68,59 +86,38 @@ function initMap() {
 async function fetchBuses() {
     try {
         const response = await fetch(`${API_BASE_URL}/buses`);
-        let busData = await response.json();
-
-        // Handle array or object response
-        if (Array.isArray(busData)) {
-            const objData = {};
-            busData.forEach(bus => objData[bus.id] = bus);
-            busData = objData;
-        }
-
-        console.log('Fetched buses:', busData);
+        const busData = await response.json();
 
         debugContent.innerHTML = JSON.stringify(busData, null, 2);
         document.getElementById('last-update').textContent = new Date().toLocaleTimeString();
         document.getElementById('active-buses').textContent = Object.keys(busData).length;
         document.getElementById('total-buses').textContent = Object.keys(busData).length;
 
-        busList.innerHTML = ''; // clear bus list
-
-        if (!busData || Object.keys(busData).length === 0) {
-            busList.innerHTML = '<p>No buses available</p>';
-            return;
-        }
-
         for (const busId in busData) {
             const bus = busData[busId];
             const position = [bus.lat, bus.lon];
 
-            // Add or update marker
             if (markers[busId]) {
                 markers[busId].setLatLng(position);
-                markers[busId].setPopupContent(`<b>${bus.name}</b><br>Status: ${bus.status}`);
+                markers[busId].setPopupContent(`
+                    <b>${bus.name}</b><br>
+                    Status: ${bus.status}<br>
+                    Last Update: ${bus.lastUpdate}<br>
+                    <button onclick="openActionModal(${busId})" style="margin-top:10px;padding:5px 10px;background:#3498db;color:white;border:none;border-radius:3px;cursor:pointer;">Options</button>
+                `);
             } else {
                 markers[busId] = L.marker(position).addTo(map)
-                    .bindPopup(`<b>${bus.name}</b><br>Status: ${bus.status}`);
+                    .bindPopup(`
+                        <b>${bus.name}</b><br>
+                        Status: ${bus.status}<br>
+                        Last Update: ${bus.lastUpdate}<br>
+                        <button onclick="openActionModal(${busId})" style="margin-top:10px;padding:5px 10px;background:#3498db;color:white;border:none;border-radius:3px;cursor:pointer;">Options</button>
+                    `);
             }
-
-            // Add to bus list
-            const div = document.createElement('div');
-            div.classList.add('bus-item');
-            div.innerHTML = `
-                <div class="bus-icon"><i class="fas fa-bus"></i></div>
-                <div class="bus-info">
-                    <h3>${bus.name}</h3>
-                    <p>Status: ${bus.status}</p>
-                </div>
-            `;
-            div.addEventListener('click', () => openActionModal(busId));
-            busList.appendChild(div);
         }
     } catch (err) {
         console.error("Error fetching buses:", err);
         debugContent.innerHTML = "Error fetching bus data: " + err.message;
-        busList.innerHTML = '<p>Error loading buses</p>';
     }
 }
 
@@ -131,7 +128,7 @@ function openActionModal(busId) {
     actionModal.style.display = 'flex';
 }
 
-// ================== Driver Live Location ==================
+// ================== User Live Location ==================
 function startLiveLocation(busId) {
     selectedBusId = busId;
 
@@ -190,20 +187,33 @@ function stopLiveLocation() {
 // ================== Send Location to Backend ==================
 async function sendLocationToServer(busId, lat, lon) {
     try {
-        await fetch(`${API_BASE_URL}/update_location`, {
+        const response = await fetch(`${API_BASE_URL}/update_location`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ bus_id: busId, lat, lon, driverConnected: true }),
+            body: JSON.stringify({ bus_id: busId, lat: lat, lon: lon }),
         });
+
+        const result = await response.json();
+        debugContent.innerHTML = `Location sent: ${JSON.stringify(result, null, 2)}`;
     } catch (err) {
         console.error("Error sending location:", err);
+        debugContent.innerHTML = "Error sending location: " + err.message;
     }
+}
+
+// ================== Authentication Functions ==================
+function authenticateDriver(driverId, password) {
+    return driverId === "driver123" && password === "pass123";
+}
+
+function authenticateUser(userId, password) {
+    return userId && password;
 }
 
 // ================== Modal Functionality ==================
 busSelectBtn.addEventListener('click', () => busModal.style.display = 'flex');
 
-closeModals.forEach(btn => btn.addEventListener('click', () => {
+closeModals.forEach(closeBtn => closeBtn.addEventListener('click', () => {
     document.querySelectorAll('.modal').forEach(modal => modal.style.display = 'none');
 }));
 
@@ -223,10 +233,10 @@ viewAction.addEventListener('click', () => {
 });
 
 confirmDriverLogin.addEventListener('click', () => {
-    const id = document.getElementById('driver-id').value;
+    const driverId = document.getElementById('driver-id').value;
     const password = document.getElementById('driver-password').value;
 
-    if (driverCredentials[id] === password) {
+    if (authenticateDriver(driverId, password)) {
         driverLoginModal.style.display = 'none';
         startLiveLocation(currentPopupBusId);
         showToast(`Driver connected to Bus ${currentPopupBusId}`);
@@ -237,38 +247,32 @@ confirmDriverLogin.addEventListener('click', () => {
     }
 });
 
-confirmUserLogin.addEventListener('click', async () => {
-    const id = document.getElementById('user-id').value;
+confirmUserLogin.addEventListener('click', () => {
+    const userId = document.getElementById('user-id').value;
     const password = document.getElementById('user-password').value;
 
-    if (studentCredentials[id] === password) {
-        // Check if driver is connected
-        const response = await fetch(`${API_BASE_URL}/buses`);
-        const busData = await response.json();
-        if (!busData[currentPopupBusId]?.driverConnected) {
-            showToast('Driver not connected. Cannot view live location.');
-            return;
-        }
-
+    if (authenticateUser(userId, password)) {
         userLoginModal.style.display = 'none';
         showToast(`Viewing Bus ${currentPopupBusId} location`);
 
         if (markers[currentPopupBusId]) {
-            map.setView(markers[currentPopupBusId].getLatLng(), 15);
+            const position = markers[currentPopupBusId].getLatLng();
+            map.setView(position, 15);
         }
     } else {
-        showToast('Invalid student credentials');
+        showToast('Invalid user credentials');
     }
 });
 
 stopTrackingBtn.addEventListener('click', stopLiveLocation);
 
-// ================== Utility ==================
 function showToast(message) {
     const toast = document.getElementById('toast');
     const toastMessage = document.getElementById('toast-message');
+
     toastMessage.textContent = message;
     toast.classList.add('show');
+
     setTimeout(() => toast.classList.remove('show'), 3000);
 }
 
@@ -284,8 +288,8 @@ function updateGpsStatus(status) {
     else text.textContent = 'GPS Inactive';
 }
 
-// Expose modal function to HTML
+// Expose to HTML buttons
 window.openActionModal = openActionModal;
 
-// ================== Initialize ==================
+// Initialize
 document.addEventListener('DOMContentLoaded', initMap);
