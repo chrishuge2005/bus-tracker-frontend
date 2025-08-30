@@ -5,8 +5,7 @@
         let selectedBusId = null;
         let gpsWatchId = null;
 
-        // 👇 Replace with your PC's actual IP address
-        const API_BASE_URL = "http://192.168.1.100:8000";  // Change this to your PC's IP
+        const API_BASE_URL = "https://bus-tracker-backend-96uu.onrender.com";
 
         // ================== DOM Elements ==================
         const busModal = document.getElementById('bus-modal');
