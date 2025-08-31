@@ -237,6 +237,7 @@ confirmDriverLogin.addEventListener('click', () => {
     const password = document.getElementById('driver-password').value;
 
     if (authenticateDriver(driverId, password)) {
+        // ❌ don't clear inputs
         driverLoginModal.style.display = 'none';
         startLiveLocation(currentPopupBusId);
         showToast(`Driver connected to Bus ${currentPopupBusId}`);
@@ -252,6 +253,7 @@ confirmUserLogin.addEventListener('click', () => {
     const password = document.getElementById('user-password').value;
 
     if (authenticateUser(userId, password)) {
+        // ❌ don't clear inputs
         userLoginModal.style.display = 'none';
         showToast(`Viewing Bus ${currentPopupBusId} location`);
 
