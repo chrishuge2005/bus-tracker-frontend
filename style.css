@@ -1,4 +1,4 @@
-* {
+        * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
@@ -10,16 +10,17 @@
             flex-direction: column;
             height: 100vh;
             overflow: hidden;
+            background-color: #f5f7fa;
         }
         
         header {
-            background-color: #2c3e50;
+            background: linear-gradient(135deg, #2c3e50, #1a2530);
             color: white;
             padding: 15px 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
         }
         
         .logo {
@@ -29,13 +30,72 @@
         }
         
         .logo i {
-            font-size: 24px;
+            font-size: 28px;
+            color: #3498db;
         }
         
         .header-info {
             display: flex;
             gap: 20px;
             font-size: 14px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px 15px;
+            border-radius: 20px;
+        }
+        
+        .auth-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .auth-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-login {
+            background-color: #3498db;
+            color: white;
+        }
+        
+        .btn-login:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+        }
+        
+        .btn-student {
+            background-color: #9b59b6;
+            color: white;
+        }
+        
+        .btn-student:hover {
+            background-color: #8e44ad;
+            transform: translateY(-2px);
+        }
+        
+        .btn-logout {
+            background-color: #e74c3c;
+            color: white;
+        }
+        
+        .btn-logout:hover {
+            background-color: #c0392b;
+            transform: translateY(-2px);
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: white;
+        }
+        
+        .user-info i {
+            font-size: 20px;
         }
         
         .container {
@@ -46,15 +106,16 @@
         
         .sidebar {
             width: 350px;
-            background-color: #f8f9fa;
+            background-color: #fff;
             border-right: 1px solid #e0e0e0;
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.05);
         }
         
         .sidebar-header {
-            padding: 15px;
+            padding: 20px;
             background-color: #ecf0f1;
             border-bottom: 1px solid #e0e0e0;
         }
@@ -66,36 +127,44 @@
         
         .search-box input {
             flex: 1;
-            padding: 10px;
+            padding: 12px;
             border: 1px solid #ddd;
-            border-radius: 4px 0 0 4px;
+            border-radius: 25px 0 0 25px;
             outline: none;
+            font-size: 14px;
         }
         
         .search-box button {
-            padding: 10px;
+            padding: 12px 15px;
             background-color: #3498db;
             color: white;
             border: none;
-            border-radius: 0 4px 4px 0;
+            border-radius: 0 25px 25px 0;
             cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .search-box button:hover {
+            background-color: #2980b9;
         }
         
         .stats {
             display: flex;
             justify-content: space-between;
             background-color: white;
-            padding: 10px;
-            border-radius: 4px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.08);
         }
         
         .stat-item {
             text-align: center;
+            flex: 1;
+            padding: 0 5px;
         }
         
         .stat-value {
-            font-size: 18px;
+            font-size: 20px;
             font-weight: bold;
             color: #2c3e50;
         }
@@ -103,6 +172,7 @@
         .stat-label {
             font-size: 12px;
             color: #7f8c8d;
+            margin-top: 5px;
         }
         
         .bus-list {
@@ -114,30 +184,32 @@
         .bus-item {
             display: flex;
             align-items: center;
-            padding: 12px;
+            padding: 15px;
             background-color: white;
-            margin-bottom: 10px;
-            border-radius: 4px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 12px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
             cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
+            transition: all 0.3s ease;
+            border-left: 4px solid #3498db;
         }
         
         .bus-item:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
         }
         
         .bus-icon {
-            width: 40px;
-            height: 40px;
-            background-color: #3498db;
+            width: 45px;
+            height: 45px;
+            background: linear-gradient(135deg, #3498db, #2c3e50);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
             margin-right: 15px;
+            font-size: 18px;
         }
         
         .bus-info {
@@ -156,7 +228,7 @@
         }
         
         .bus-status {
-            padding: 5px 10px;
+            padding: 6px 12px;
             border-radius: 20px;
             font-size: 12px;
             font-weight: bold;
@@ -189,45 +261,47 @@
         
         .map-controls {
             position: absolute;
-            top: 15px;
-            right: 15px;
+            top: 20px;
+            right: 20px;
             z-index: 1000;
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 12px;
         }
         
         .control-btn {
-            width: 40px;
-            height: 40px;
+            width: 45px;
+            height: 45px;
             border-radius: 50%;
             background-color: white;
             border: none;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            box-shadow: 0 3px 10px rgba(0,0,0,0.15);
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
             color: #2c3e50;
             font-size: 18px;
+            transition: all 0.3s ease;
         }
         
         .control-btn:hover {
             background-color: #f8f9fa;
+            transform: scale(1.1);
         }
         
         .gps-status {
             position: absolute;
-            bottom: 15px;
-            left: 15px;
+            bottom: 20px;
+            left: 20px;
             z-index: 1000;
             background-color: white;
-            padding: 8px 12px;
-            border-radius: 4px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            padding: 10px 15px;
+            border-radius: 25px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.15);
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
             font-size: 14px;
         }
         
@@ -239,6 +313,7 @@
         
         .gps-active {
             background-color: #4caf50;
+            box-shadow: 0 0 8px #4caf50;
         }
         
         .gps-inactive {
@@ -247,6 +322,13 @@
         
         .gps-searching {
             background-color: #ff9800;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
         }
         
         .modal {
@@ -264,16 +346,22 @@
         
         .modal-content {
             background-color: white;
-            border-radius: 8px;
+            border-radius: 12px;
             width: 400px;
             max-width: 90%;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
             overflow: hidden;
+            animation: modalFadeIn 0.3s;
+        }
+        
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
         
         .modal-header {
-            padding: 15px 20px;
-            background-color: #2c3e50;
+            padding: 20px;
+            background: linear-gradient(135deg, #2c3e50, #1a2530);
             color: white;
             display: flex;
             justify-content: space-between;
@@ -284,31 +372,63 @@
             background: none;
             border: none;
             color: white;
-            font-size: 20px;
+            font-size: 24px;
             cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .close-modal:hover {
+            transform: scale(1.2);
         }
         
         .modal-body {
-            padding: 20px;
+            padding: 25px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            outline: none;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        .form-group input:focus {
+            border-color: #3498db;
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
         }
         
         .bus-options {
             display: flex;
             flex-direction: column;
-            gap: 10px;
-            margin: 15px 0;
+            gap: 12px;
+            margin: 20px 0;
         }
         
         .bus-option {
-            padding: 12px;
+            padding: 15px;
             border: 1px solid #ddd;
-            border-radius: 4px;
+            border-radius: 8px;
             cursor: pointer;
-            transition: background-color 0.2s;
+            transition: all 0.3s ease;
         }
         
         .bus-option:hover {
-            background-color: #f5f5f5;
+            background-color: #f5f7fa;
+            transform: translateX(5px);
         }
         
         .bus-option.selected {
@@ -317,19 +437,20 @@
         }
         
         .modal-footer {
-            padding: 15px 20px;
+            padding: 20px;
             background-color: #f8f9fa;
             display: flex;
             justify-content: flex-end;
-            gap: 10px;
+            gap: 12px;
         }
         
         .modal-btn {
-            padding: 8px 16px;
+            padding: 10px 20px;
             border: none;
-            border-radius: 4px;
+            border-radius: 6px;
             cursor: pointer;
             font-weight: bold;
+            transition: all 0.3s ease;
         }
         
         .btn-cancel {
@@ -337,23 +458,32 @@
             color: #6c757d;
         }
         
+        .btn-cancel:hover {
+            background-color: #e9ecef;
+        }
+        
         .btn-confirm {
             background-color: #3498db;
             color: white;
         }
         
+        .btn-confirm:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+        }
+        
         .toast {
             position: fixed;
-            bottom: 20px;
-            right: 20px;
-            padding: 12px 20px;
+            bottom: 25px;
+            right: 25px;
+            padding: 15px 25px;
             background-color: #323232;
             color: white;
-            border-radius: 4px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
             z-index: 3000;
             opacity: 0;
             transform: translateY(20px);
@@ -365,32 +495,118 @@
             transform: translateY(0);
         }
         
-        .debug-panel {
+        .driver-controls {
             position: absolute;
-            top: 15px;
-            left: 15px;
+            bottom: 80px;
+            left: 20px;
             z-index: 1000;
-            background-color: rgba(255, 255, 255, 0.9);
-            padding: 10px;
-            border-radius: 4px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            font-size: 12px;
-            max-width: 300px;
+            background-color: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+            display: none;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .student-controls {
+            position: absolute;
+            bottom: 80px;
+            left: 20px;
+            z-index: 1000;
+            background-color: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+            display: none;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .driver-btn, .student-btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-start {
+            background-color: #4caf50;
+            color: white;
+        }
+        
+        .btn-start:hover {
+            background-color: #45a049;
+            transform: translateY(-2px);
+        }
+        
+        .btn-stop {
+            background-color: #f44336;
+            color: white;
+        }
+        
+        .btn-stop:hover {
+            background-color: #e53935;
+            transform: translateY(-2px);
+        }
+        
+        .btn-track {
+            background-color: #9b59b6;
+            color: white;
+        }
+        
+        .btn-track:hover {
+            background-color: #8e44ad;
+            transform: translateY(-2px);
+        }
+        
+        .location-permission {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            text-align: center;
+            z-index: 1000;
+            max-width: 400px;
             display: none;
         }
         
-        .debug-toggle {
-            position: absolute;
-            top: 70px;
-            left: 15px;
-            z-index: 1000;
-            background-color: white;
+        .location-permission i {
+            font-size: 48px;
+            color: #3498db;
+            margin-bottom: 15px;
+        }
+        
+        .location-permission h2 {
+            margin-bottom: 15px;
+            color: #2c3e50;
+        }
+        
+        .location-permission p {
+            margin-bottom: 20px;
+            color: #7f8c8d;
+        }
+        
+        .permission-btn {
+            padding: 12px 25px;
+            background-color: #3498db;
+            color: white;
             border: none;
-            border-radius: 4px;
-            padding: 5px 10px;
-            font-size: 12px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            border-radius: 25px;
             cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        
+        .permission-btn:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
         }
         
         @media (max-width: 768px) {
@@ -405,5 +621,15 @@
             
             .header-info {
                 display: none;
+            }
+            
+            .map-controls {
+                top: 10px;
+                right: 10px;
+            }
+            
+            .gps-status {
+                bottom: 10px;
+                left: 10px;
             }
         }
