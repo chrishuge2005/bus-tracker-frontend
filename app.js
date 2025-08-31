@@ -714,4 +714,5 @@
             }, 3000);
         }
 
-        // Initialize the application when the pag
+        // Initialize the application when the page loads
+        window.addEventListener('load', init);
