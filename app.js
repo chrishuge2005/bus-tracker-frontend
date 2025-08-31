@@ -18,7 +18,7 @@ let busActivityStatus = {
     "4": false
 };
 
-const API_BASE_URL = "http://localhost:8000";
+const API_BASE_URL = "https://bus-tracker-backend-96uu.onrender.com";
 
 // Credentials
 const driverCredentials = {
