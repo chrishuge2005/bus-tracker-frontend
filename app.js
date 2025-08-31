@@ -11,6 +11,12 @@ let userLocation = null;
 let userRole = null;
 let trackedBusMarker = null;
 let busData = {};
+let busActivityStatus = {
+    "1": false,
+    "2": false, 
+    "3": false,
+    "4": false
+};
 
 const API_BASE_URL = "https://bus-tracker-backend-96uu.onrender.com";
 
@@ -35,10 +41,10 @@ const studentCredentials = {
 };
 
 const fallbackBusData = {
-    "1": { lat: 12.9716, lng: 77.5946, name: "Campus Shuttle A", status: "on-time", lastUpdate: new Date() },
-    "2": { lat: 12.9352, lng: 77.6245, name: "North Route", status: "delayed", lastUpdate: new Date(Date.now() - 120000) },
-    "3": { lat: 12.9876, lng: 77.5512, name: "South Route", status: "arriving", lastUpdate: new Date(Date.now() - 30000) },
-    "4": { lat: 12.9563, lng: 77.5768, name: "East Route", status: "on-time", lastUpdate: new Date(Date.now() - 60000) }
+    "1": { lat: 12.9716, lng: 77.5946, name: "Campus Shuttle A", status: "inactive", lastUpdate: new Date() },
+    "2": { lat: 12.9352, lng: 77.6245, name: "North Route", status: "inactive", lastUpdate: new Date(Date.now() - 120000) },
+    "3": { lat: 12.9876, lng: 77.5512, name: "South Route", status: "inactive", lastUpdate: new Date(Date.now() - 30000) },
+    "4": { lat: 12.9563, lng: 77.5768, name: "East Route", status: "inactive", lastUpdate: new Date(Date.now() - 60000) }
 };
 
 // Initialize application
@@ -133,18 +139,26 @@ async function loadBusData() {
         const response = await fetch(`${API_BASE_URL}/buses`);
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         
-        busData = await response.json();
+        const apiBusData = await response.json();
+        busData = { ...apiBusData };
+        
         updateBusList(busData);
         
         for (const busId in busData) {
             const bus = busData[busId];
-            updateBusMarker(busId, bus.lat, bus.lng, bus.status);
+            let status = bus.status;
+            
+            if (busActivityStatus[busId] === false) {
+                status = "inactive";
+            }
+            
+            updateBusMarker(busId, bus.lat, bus.lng, status);
         }
         
         document.getElementById('last-update').textContent = new Date().toLocaleTimeString();
     } catch (error) {
         console.error("Error fetching bus data:", error);
-        busData = fallbackBusData;
+        busData = { ...fallbackBusData };
         updateBusList(fallbackBusData);
         for (const busId in fallbackBusData) {
             const bus = fallbackBusData[busId];
@@ -160,6 +174,7 @@ function updateBusMarker(busId, lat, lng, status) {
         case "on-time": markerColor = "#10b981"; break;
         case "delayed": markerColor = "#ef4444"; break;
         case "arriving": markerColor = "#f59e0b"; break;
+        case "inactive": markerColor = "#6b7280"; break;
         default: markerColor = "#2563eb";
     }
 
@@ -188,9 +203,8 @@ function updateBusList(busData) {
     const busList = document.getElementById('bus-list');
     busList.innerHTML = '';
 
-    let onTimeCount = 0;
-    let delayedCount = 0;
-    let arrivingCount = 0;
+    let activeCount = 0;
+    let inactiveCount = 0;
 
     for (const busId in busData) {
         const bus = busData[busId];
@@ -198,24 +212,26 @@ function updateBusList(busData) {
         busItem.className = 'bus-item';
         busItem.dataset.busId = busId;
 
-        let status = bus.status || "on-time";
-        switch(status) {
-            case "on-time": onTimeCount++; break;
-            case "delayed": delayedCount++; break;
-            case "arriving": arrivingCount++; break;
+        let status = bus.status || "inactive";
+        if (busActivityStatus[busId] === true) {
+            status = "active";
+            activeCount++;
+        } else {
+            inactiveCount++;
         }
 
         busItem.innerHTML = `
             <div class="bus-icon"><i class="fas fa-bus"></i></div>
             <div class="bus-info">
                 <h3>${bus.name || `Bus ${busId}`}</h3>
-                <p>ID: ${busId} | Location: ${bus.lat.toFixed(4)}, ${bus.lng.toFixed(4)}</p>
+                <p>ID: ${busId} | Status: <span class="status-${status}">${status}</span></p>
             </div>
             <span class="bus-status status-${status}">${status}</span>
         `;
 
         busItem.addEventListener('click', () => {
-            map.setView([bus.lat, bus.lng], 16);
+            const busLocation = busData[busId] || fallbackBusData[busId];
+            map.setView([busLocation.lat, busLocation.lng], 16);
             if (markers[busId]) {
                 markers[busId].openPopup();
             }
@@ -224,10 +240,8 @@ function updateBusList(busData) {
         busList.appendChild(busItem);
     }
 
-    document.getElementById('active-buses').textContent = Object.keys(busData).length;
+    document.getElementById('active-buses').textContent = activeCount;
     document.getElementById('total-buses').textContent = Object.keys(busData).length;
-    document.getElementById('on-time').textContent = onTimeCount;
-    document.getElementById('delayed').textContent = delayedCount;
 }
 
 function startTrackingAsBus() {
@@ -248,6 +262,8 @@ function startTrackingAsBus() {
             updateGPSStatus("active");
             userLocation = { lat: latitude, lng: longitude };
             
+            // Mark bus as active and update location
+            busActivityStatus[selectedBusId] = true;
             updateBusMarker(selectedBusId, latitude, longitude, "on-time");
             updateBusLocationOnServer(selectedBusId, latitude, longitude);
             
@@ -302,7 +318,8 @@ async function updateBusLocationOnServer(busId, lat, lng) {
             body: JSON.stringify({
                 lat: lat,
                 lng: lng,
-                timestamp: new Date().toISOString()
+                timestamp: new Date().toISOString(),
+                status: "active"
             })
         });
         
@@ -334,6 +351,7 @@ function trackStudentLocation() {
             updateGPSStatus("active");
             userLocation = { lat: latitude, lng: longitude };
             
+            // Update student marker with live location
             if (userMarker) {
                 userMarker.setLatLng([latitude, longitude]);
             } else {
@@ -359,8 +377,8 @@ function trackStudentLocation() {
                 accuracyCircle.setRadius(accuracy);
             }
             
-            // Use live bus data instead of fallback
-            const busLocation = busData[selectedBusId] || fallbackBusData[selectedBusId];
+            // Use live bus data from server
+            const busLocation = busData[selectedBusId];
             if (busLocation) {
                 const bounds = L.latLngBounds(
                     [latitude, longitude],
@@ -406,6 +424,12 @@ function stopTracking() {
     if (accuracyCircle) {
         map.removeLayer(accuracyCircle);
         accuracyCircle = null;
+    }
+    
+    // Mark bus as inactive when driver stops tracking
+    if (userRole === 'driver' && selectedBusId) {
+        busActivityStatus[selectedBusId] = false;
+        updateBusList(busData);
     }
 }
 
@@ -489,6 +513,13 @@ function handleStudentLogin() {
 
 function handleLogout() {
     stopTracking();
+    
+    // Mark bus as inactive when driver logs out
+    if (userRole === 'driver' && selectedBusId) {
+        busActivityStatus[selectedBusId] = false;
+        updateBusList(busData);
+    }
+    
     isLoggedIn = false;
     userRole = null;
     currentUser = null;
