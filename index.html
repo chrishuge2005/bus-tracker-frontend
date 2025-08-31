@@ -7,14 +7,703 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* ... (all the CSS styles remain exactly the same) ... */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f7fa;
+            color: #333;
+            display: flex;
+            min-height: 100vh;
+        }
+        
+        .container {
+            display: flex;
+            width: 100%;
+            max-width: 1600px;
+            margin: 0 auto;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        .sidebar {
+            width: 350px;
+            background: linear-gradient(135deg, #2c3e50 0%, #4a6491 100%);
+            color: white;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .map-container {
+            flex: 1;
+            position: relative;
+        }
+        
+        #map {
+            height: 100%;
+            width: 100%;
+            z-index: 1;
+        }
+        
+        .header {
+            background: white;
+            padding: 15px 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .app-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #2c3e50;
+        }
+        
+        .search-box {
+            display: flex;
+            background: white;
+            border-radius: 30px;
+            padding: 5px 15px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            margin: 15px 0;
+        }
+        
+        .search-box input {
+            border: none;
+            outline: none;
+            padding: 8px;
+            flex: 1;
+            font-size: 16px;
+        }
+        
+        .search-box button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #3498db;
+            font-size: 18px;
+        }
+        
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .stat-box {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            backdrop-filter: blur(5px);
+        }
+        
+        .stat-number {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            opacity: 0.8;
+        }
+        
+        .bus-list {
+            margin-top: 20px;
+        }
+        
+        .bus-item {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .bus-item:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+        
+        .bus-icon {
+            width: 40px;
+            height: 40px;
+            background: #3498db;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            font-size: 18px;
+        }
+        
+        .bus-info {
+            flex: 1;
+        }
+        
+        .bus-info h3 {
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+        
+        .bus-info p {
+            font-size: 14px;
+            opacity: 0.8;
+        }
+        
+        .bus-status {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .status-active {
+            background: #2ecc71;
+        }
+        
+        .status-inactive {
+            background: #95a5a6;
+        }
+        
+        .status-delayed {
+            background: #e74c3c;
+        }
+        
+        .status-ontime {
+            background: #3498db;
+        }
+        
+        .map-controls {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .control-btn {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: white;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 18px;
+            color: #2c3e50;
+            transition: all 0.3s ease;
+        }
+        
+        .control-btn:hover {
+            background: #3498db;
+            color: white;
+        }
+        
+        .gps-status {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+            background: white;
+            padding: 10px 15px;
+            border-radius: 30px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .gps-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        
+        .gps-active {
+            background: #2ecc71;
+            box-shadow: 0 0 10px #2ecc71;
+        }
+        
+        .gps-inactive {
+            background: #e74c3c;
+        }
+        
+        .gps-searching {
+            background: #f39c12;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .login-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .login-btn {
+            padding: 8px 15px;
+            border-radius: 20px;
+            border: none;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .login-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #e74c3c;
+            color: white;
+            padding: 12px 25px;
+            border-radius: 30px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            z-index: 2000;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .toast.show {
+            opacity: 1;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: white;
+        }
+        
+        .user-avatar {
+            width: 35px;
+            height: 35px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .driver-controls, .student-controls {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+            display: none;
+        }
+        
+        .control-title {
+            font-size: 16px;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        
+        .track-btn {
+            display: inline-block;
+            padding: 8px 15px;
+            background: #3498db;
+            color: white;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .track-btn:hover {
+            background: #2980b9;
+        }
+        
+        .last-update {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 14px;
+            opacity: 0.7;
+        }
+        
+        .location-permission {
+            background: rgba(231, 76, 60, 0.2);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+            text-align: center;
+        }
+        
+        .enable-location {
+            display: inline-block;
+            padding: 8px 15px;
+            background: #e74c3c;
+            color: white;
+            border-radius: 20px;
+            cursor: pointer;
+            margin-top: 10px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .enable-location:hover {
+            background: #c0392b;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 3000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            width: 400px;
+            max-width: 90%;
+            box-shadow: 0 5px 25px rgba(0, 0, 0, 0.2);
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .modal-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #2c3e50;
+        }
+        
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #7f8c8d;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        
+        .bus-options {
+            display: flex;
+            gap: 10px;
+            margin: 15px 0;
+        }
+        
+        .bus-option {
+            flex: 1;
+            text-align: center;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .bus-option.selected {
+            border-color: #3498db;
+            background: rgba(52, 152, 219, 0.1);
+        }
+        
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border-radius: 5px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #2980b9;
+        }
+        
+        .btn-secondary {
+            background: #95a5a6;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #7f8c8d;
+        }
+        
+        .user-marker-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .user-marker {
+            width: 24px;
+            height: 24px;
+            background: #3498db;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+        
+        .bus-marker {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .tracked-bus-marker-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .tracked-bus-marker {
+            width: 32px;
+            height: 32px;
+            background: #e74c3c;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            animation: pulse 1.5s infinite;
+        }
     </style>
 </head>
 <body>
-    <!-- ... (all the HTML remains exactly the same) ... -->
+    <div class="container">
+        <div class="sidebar">
+            <div class="app-title">Bus Tracker GPS</div>
+            
+            <div class="search-box">
+                <input type="text" id="bus-search" placeholder="Search for a bus...">
+                <button><i class="fas fa-search"></i></button>
+            </div>
+            
+            <div class="stats-container">
+                <div class="stat-box">
+                    <div class="stat-number" id="total-buses">4</div>
+                    <div class="stat-label">Total Buses</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number" id="active-buses">1</div>
+                    <div class="stat-label">Active Buses</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number" id="on-time">3</div>
+                    <div class="stat-label">On Time</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number" id="delayed">1</div>
+                    <div class="stat-label">Delayed</div>
+                </div>
+            </div>
+            
+            <div class="bus-list" id="bus-list">
+                <!-- Bus items will be populated by JavaScript -->
+            </div>
+            
+            <div class="last-update">
+                Last Update: <span id="last-update">--:--:--</span>
+            </div>
+            
+            <div class="login-buttons" id="login-buttons">
+                <button class="login-btn" id="driver-login-btn">Driver Login</button>
+                <button class="login-btn" id="student-login-btn">Student Login</button>
+            </div>
+            
+            <div class="user-info" id="user-info" style="display: none;">
+                <div class="user-avatar"><i class="fas fa-user"></i></div>
+                <div>Welcome, <span id="username">User</span></div>
+                <button class="login-btn" id="logout-btn">Logout</button>
+            </div>
+            
+            <div class="driver-controls" id="driver-controls">
+                <div class="control-title">Driver Controls</div>
+                <button class="track-btn" id="start-tracking">Start Tracking</button>
+                <button class="track-btn" id="stop-tracking" style="display: none; background: #e74c3c;">Stop Tracking</button>
+            </div>
+            
+            <div class="student-controls" id="student-controls">
+                <div class="control-title">Student Controls</div>
+                <button class="track-btn" id="track-bus">Track My Bus</button>
+            </div>
+            
+            <div class="location-permission" id="location-permission" style="display: none;">
+                <p>Location access is required for this app</p>
+                <button class="enable-location" id="enable-location">Enable Location</button>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <div class="map-container">
+                <div id="map"></div>
+                
+                <div class="gps-status">
+                    <div class="gps-indicator gps-active" id="gps-indicator"></div>
+                    <div class="gps-text" id="gps-text">GPS Active</div>
+                </div>
+                
+                <div class="map-controls">
+                    <div class="control-btn" id="zoom-in"><i class="fas fa-plus"></i></div>
+                    <div class="control-btn" id="zoom-out"><i class="fas fa-minus"></i></div>
+                    <div class="control-btn" id="locate-me"><i class="fas fa-crosshairs"></i></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Driver Login Modal -->
+    <div class="modal" id="driver-login-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Driver Login</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="form-group">
+                <label for="driver-id">Driver ID</label>
+                <input type="text" id="driver-id" placeholder="Enter your driver ID">
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" placeholder="Enter your password">
+            </div>
+            <div class="form-group">
+                <label>Select Bus</label>
+                <div class="bus-options">
+                    <div class="bus-option selected" data-bus-id="1">
+                        <div>Bus 1</div>
+                    </div>
+                    <div class="bus-option" data-bus-id="2">
+                        <div>Bus 2</div>
+                    </div>
+                    <div class="bus-option" data-bus-id="3">
+                        <div>Bus 3</div>
+                    </div>
+                    <div class="bus-option" data-bus-id="4">
+                        <div>Bus 4</div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="cancel-driver-login">Cancel</button>
+                <button class="btn btn-primary" id="confirm-driver-login">Login</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Student Login Modal -->
+    <div class="modal" id="student-login-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Student Login</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="form-group">
+                <label for="student-id">Student ID</label>
+                <input type="text" id="student-id" placeholder="Enter your student ID">
+            </div>
+            <div class="form-group">
+                <label for="student-password">Password</label>
+                <input type="password" id="student-password" placeholder="Enter your password">
+            </div>
+            <div class="form-group">
+                <label>Select Bus to Track</label>
+                <div class="bus-options">
+                    <div class="bus-option selected" data-bus-id="1">
+                        <div>Bus 1</div>
+                    </div>
+                    <div class="bus-option" data-bus-id="2">
+                        <div>Bus 2</div>
+                    </div>
+                    <div class="bus-option" data-bus-id="3">
+                        <div>Bus 3</div>
+                    </div>
+                    <div class="bus-option" data-bus-id="4">
+                        <div>Bus 4</div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="cancel-student-login">Cancel</button>
+                <button class="btn btn-primary" id="confirm-student-login">Login</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Toast Notification -->
+    <div class="toast" id="toast">
+        <div class="toast-message" id="toast-message">Backend not reachable. Using offline data.</div>
+    </div>
 
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
-    <script>
+        <script>
         // Initialize variables
         let map;
         let markers = {};
