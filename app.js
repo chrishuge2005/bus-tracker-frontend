@@ -21,7 +21,7 @@ let busActivityStatus = {
     "4": false
 };
 
-const API_BASE_URL = "https://bus-tracker-backend-96uu.onrender.com";
+const API_BASE_URL = "bus-tracker-backend-production.up.railway.app";
 
 // Credentials
 const driverCredentials = {
