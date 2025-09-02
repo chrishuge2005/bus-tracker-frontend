@@ -569,9 +569,12 @@ async function loadBusData() {
     try {
         updateConnectionStatus('connecting');
         
-        // Add timeout to fetch request
+        // Create a proper timeout controller with error handling
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000); // Reduced to 10 seconds
+        const timeoutId = setTimeout(() => {
+            // Provide specific error message when aborting
+            controller.abort(new Error(`Request timed out after 10000ms`));
+        }, 10000);
         
         const response = await fetch(`${API_BASE_URL}/buses`, {
             signal: controller.signal,
@@ -583,7 +586,9 @@ async function loadBusData() {
         
         clearTimeout(timeoutId);
         
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
         
         const apiBusData = await response.json();
         busData = { ...apiBusData };
@@ -606,6 +611,9 @@ async function loadBusData() {
         retryCount = 0;
         console.log("Bus data loaded successfully from API");
     } catch (error) {
+        // Clear timeout if it's still pending
+        clearTimeout(timeoutId);
+        
         if (error.name === 'AbortError') {
             console.warn("Fetch timeout - using offline data:", error);
             showToast("Server connection timeout. Using offline data.", 2000);
@@ -619,11 +627,11 @@ async function loadBusData() {
         if (retryCount < MAX_RETRIES) {
             retryCount++;
             console.log(`Retrying fetch... Attempt ${retryCount}`);
-            setTimeout(loadBusData, 5000); // Retry after 5 seconds
+            setTimeout(loadBusData, 5000);
             return;
         } else {
             console.log("Max retries reached, using offline data");
-            retryCount = 0; // Reset for next time
+            retryCount = 0;
         }
         
         // Use fallback data but preserve any active driver tracking
@@ -650,6 +658,15 @@ async function loadBusData() {
             const bus = preservedBusData[busId];
             updateBusMarker(busId, bus.lat, bus.lng, bus.status);
         }
+    }
+}
+
+// Add this helper function if you don't have it
+function updateConnectionStatus(status) {
+    const statusElement = document.getElementById('connection-status');
+    if (statusElement) {
+        statusElement.textContent = `Status: ${status}`;
+        statusElement.className = `connection-${status}`;
     }
 }
 
