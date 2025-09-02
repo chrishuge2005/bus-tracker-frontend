@@ -11,6 +11,9 @@ let userLocation = null;
 let userRole = null;
 let trackedBusMarker = null;
 let busData = {};
+let retryCount = 0;
+const MAX_RETRIES = 3;
+
 let busActivityStatus = {
     "1": false,
     "2": false, 
@@ -550,14 +553,32 @@ function showToast(message, duration = 3000) {
     }, duration);
 }
 
+function updateConnectionStatus(status) {
+    const dot = document.getElementById('connection-dot');
+    const text = document.getElementById('connection-text');
+    
+    if (dot && text) {
+        dot.classList.remove('online', 'offline', 'connecting');
+        dot.classList.add(status);
+        
+        text.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+    }
+}
+
 async function loadBusData() {
     try {
+        updateConnectionStatus('connecting');
+        
         // Add timeout to fetch request
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 seconds
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // Reduced to 10 seconds
         
         const response = await fetch(`${API_BASE_URL}/buses`, {
-            signal: controller.signal
+            signal: controller.signal,
+            headers: {
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
+            }
         });
         
         clearTimeout(timeoutId);
@@ -581,19 +602,52 @@ async function loadBusData() {
         }
         
         document.getElementById('last-update').textContent = new Date().toLocaleTimeString();
+        updateConnectionStatus('online');
+        retryCount = 0;
+        console.log("Bus data loaded successfully from API");
     } catch (error) {
         if (error.name === 'AbortError') {
-            console.error("Fetch timeout:", error);
-            showToast("Server connection timeout. Using offline data.");
+            console.warn("Fetch timeout - using offline data:", error);
+            showToast("Server connection timeout. Using offline data.", 2000);
         } else {
-            console.error("Error fetching bus data:", error);
-            showToast("Backend not reachable. Using offline data.");
+            console.warn("Error fetching bus data - using offline data:", error);
+            showToast("Backend not reachable. Using offline data.", 2000);
         }
         
-        busData = { ...fallbackBusData };
-        updateBusList(fallbackBusData);
-        for (const busId in fallbackBusData) {
-            const bus = fallbackBusData[busId];
+        updateConnectionStatus('offline');
+        
+        if (retryCount < MAX_RETRIES) {
+            retryCount++;
+            console.log(`Retrying fetch... Attempt ${retryCount}`);
+            setTimeout(loadBusData, 5000); // Retry after 5 seconds
+            return;
+        } else {
+            console.log("Max retries reached, using offline data");
+            retryCount = 0; // Reset for next time
+        }
+        
+        // Use fallback data but preserve any active driver tracking
+        const preservedBusData = { ...fallbackBusData };
+        
+        // If a driver is actively tracking, update their bus position
+        if (isLoggedIn && userRole === 'driver' && gpsWatchId !== null) {
+            const busId = driverCredentials[currentUser].busId;
+            if (userLocation) {
+                preservedBusData[busId] = {
+                    ...preservedBusData[busId],
+                    lat: userLocation.lat,
+                    lng: userLocation.lng,
+                    status: "active",
+                    lastUpdate: new Date()
+                };
+            }
+        }
+        
+        busData = preservedBusData;
+        updateBusList(preservedBusData);
+        
+        for (const busId in preservedBusData) {
+            const bus = preservedBusData[busId];
             updateBusMarker(busId, bus.lat, bus.lng, bus.status);
         }
     }
