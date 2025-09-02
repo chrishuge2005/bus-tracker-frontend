@@ -11,9 +11,6 @@ let userLocation = null;
 let userRole = null;
 let trackedBusMarker = null;
 let busData = {};
-let retryCount = 0;
-const MAX_RETRIES = 3;
-
 let busActivityStatus = {
     "1": false,
     "2": false, 
@@ -21,7 +18,10 @@ let busActivityStatus = {
     "4": false
 };
 
-const API_BASE_URL = "bus-tracker-backend-production.up.railway.app";
+const API_BASE_URL = "https://bus-tracker-backend-96uu.onrender.com";
+const MAX_RETRIES = 3;
+const INITIAL_RETRY_DELAY = 1000; // 1 second
+const MAX_RETRY_DELAY = 10000; // 10 seconds
 
 // Credentials
 const driverCredentials = {
@@ -59,7 +59,6 @@ function init() {
     if (navigator.geolocation) {
         updateGPSStatus("searching");
         
-        // Use a timeout for location request
         const locationTimeout = setTimeout(() => {
             updateGPSStatus("inactive");
             showToast("Location request taking too long. Using default location.");
@@ -99,11 +98,11 @@ function init() {
 
 function setupEventListeners() {
     // Login buttons
-    document.getElementById('driver-login-btn').addEventListener('click', () => {
+    document.getElementById('driver-login-btn')?.addEventListener('click', () => {
         document.getElementById('driver-login-modal').style.display = 'flex';
     });
     
-    document.getElementById('student-login-btn').addEventListener('click', () => {
+    document.getElementById('student-login-btn')?.addEventListener('click', () => {
         document.getElementById('student-login-modal').style.display = 'flex';
     });
     
@@ -117,41 +116,41 @@ function setupEventListeners() {
     });
     
     // Cancel buttons
-    document.getElementById('cancel-driver-login').addEventListener('click', () => {
+    document.getElementById('cancel-driver-login')?.addEventListener('click', () => {
         document.getElementById('driver-login-modal').style.display = 'none';
     });
     
-    document.getElementById('cancel-student-login').addEventListener('click', () => {
+    document.getElementById('cancel-student-login')?.addEventListener('click', () => {
         document.getElementById('student-login-modal').style.display = 'none';
     });
     
     // Login confirm buttons
-    document.getElementById('confirm-driver-login').addEventListener('click', handleDriverLogin);
-    document.getElementById('confirm-student-login').addEventListener('click', handleStudentLogin);
+    document.getElementById('confirm-driver-login')?.addEventListener('click', handleDriverLogin);
+    document.getElementById('confirm-student-login')?.addEventListener('click', handleStudentLogin);
     
     // Logout button
-    document.getElementById('logout-btn').addEventListener('click', handleLogout);
+    document.getElementById('logout-btn')?.addEventListener('click', handleLogout);
     
     // Enable location button
-    document.getElementById('enable-location').addEventListener('click', enableLocation);
+    document.getElementById('enable-location')?.addEventListener('click', enableLocation);
     
     // Map controls
-    document.getElementById('zoom-in').addEventListener('click', () => {
+    document.getElementById('zoom-in')?.addEventListener('click', () => {
         map.zoomIn();
     });
     
-    document.getElementById('zoom-out').addEventListener('click', () => {
+    document.getElementById('zoom-out')?.addEventListener('click', () => {
         map.zoomOut();
     });
     
-    document.getElementById('locate-me').addEventListener('click', centerMapOnUser);
+    document.getElementById('locate-me')?.addEventListener('click', centerMapOnUser);
     
     // Driver controls
-    document.getElementById('start-tracking').addEventListener('click', startDriverTracking);
-    document.getElementById('stop-tracking').addEventListener('click', stopDriverTracking);
+    document.getElementById('start-tracking')?.addEventListener('click', startDriverTracking);
+    document.getElementById('stop-tracking')?.addEventListener('click', stopDriverTracking);
     
     // Student controls
-    document.getElementById('track-bus').addEventListener('click', trackBus);
+    document.getElementById('track-bus')?.addEventListener('click', trackBus);
     
     // Bus selection
     document.querySelectorAll('.bus-option').forEach(option => {
@@ -164,13 +163,13 @@ function setupEventListeners() {
     });
     
     // Search functionality
-    document.getElementById('bus-search').addEventListener('input', filterBusList);
-    document.querySelector('.search-box button').addEventListener('click', filterBusList);
+    document.getElementById('bus-search')?.addEventListener('input', filterBusList);
+    document.querySelector('.search-box button')?.addEventListener('click', filterBusList);
 }
 
 function handleDriverLogin() {
-    const driverId = document.getElementById('driver-id').value;
-    const password = document.getElementById('password').value;
+    const driverId = document.getElementById('driver-id')?.value;
+    const password = document.getElementById('password')?.value;
     const selectedBusOption = document.querySelector('#driver-login-modal .bus-option.selected');
     
     if (!driverId || !password || !selectedBusOption) {
@@ -180,20 +179,17 @@ function handleDriverLogin() {
     
     const busId = selectedBusOption.getAttribute('data-bus-id');
     
-    // Check credentials
     if (driverCredentials[driverId] && driverCredentials[driverId].password === password) {
         isLoggedIn = true;
         currentUser = driverId;
         userRole = 'driver';
         
-        // Update UI
         document.getElementById('user-info').style.display = 'flex';
         document.getElementById('login-buttons').style.display = 'none';
         document.getElementById('username').textContent = driverCredentials[driverId].name;
         document.getElementById('driver-controls').style.display = 'flex';
         document.getElementById('student-controls').style.display = 'none';
         
-        // Close modal
         document.getElementById('driver-login-modal').style.display = 'none';
         
         showToast(`Welcome, ${driverCredentials[driverId].name}`);
@@ -203,8 +199,8 @@ function handleDriverLogin() {
 }
 
 function handleStudentLogin() {
-    const studentId = document.getElementById('student-id').value;
-    const password = document.getElementById('student-password').value;
+    const studentId = document.getElementById('student-id')?.value;
+    const password = document.getElementById('student-password')?.value;
     const selectedBusOption = document.querySelector('#student-login-modal .bus-option.selected');
     
     if (!studentId || !password || !selectedBusOption) {
@@ -214,20 +210,17 @@ function handleStudentLogin() {
     
     const busId = selectedBusOption.getAttribute('data-bus-id');
     
-    // Check credentials
     if (studentCredentials[studentId] && studentCredentials[studentId].password === password) {
         isLoggedIn = true;
         currentUser = studentId;
         userRole = 'student';
         
-        // Update UI
         document.getElementById('user-info').style.display = 'flex';
         document.getElementById('login-buttons').style.display = 'none';
         document.getElementById('username').textContent = studentCredentials[studentId].name;
         document.getElementById('driver-controls').style.display = 'none';
         document.getElementById('student-controls').style.display = 'flex';
         
-        // Close modal
         document.getElementById('student-login-modal').style.display = 'none';
         
         showToast(`Welcome, ${studentCredentials[studentId].name}`);
@@ -241,30 +234,25 @@ function handleLogout() {
     currentUser = null;
     userRole = null;
     
-    // Stop any active tracking
     if (gpsWatchId !== null) {
         navigator.geolocation.clearWatch(gpsWatchId);
         gpsWatchId = null;
     }
     
-    // Remove user marker
     if (userMarker) {
         map.removeLayer(userMarker);
         userMarker = null;
     }
     
-    // Remove accuracy circle
     if (accuracyCircle) {
         map.removeLayer(accuracyCircle);
         accuracyCircle = null;
     }
     
-    // Reset bus activity status
     for (const busId in busActivityStatus) {
         busActivityStatus[busId] = false;
     }
     
-    // Reset UI
     document.getElementById('user-info').style.display = 'none';
     document.getElementById('login-buttons').style.display = 'flex';
     document.getElementById('driver-controls').style.display = 'none';
@@ -313,15 +301,12 @@ function startDriverTracking() {
     
     const busId = driverCredentials[currentUser].busId;
     
-    // Set this bus as active
     busActivityStatus[busId] = true;
     selectedBusId = busId;
     
-    // Update UI
     document.getElementById('stop-tracking').style.display = 'block';
     document.getElementById('start-tracking').style.display = 'none';
     
-    // Start GPS tracking
     if (gpsWatchId !== null) {
         navigator.geolocation.clearWatch(gpsWatchId);
     }
@@ -331,10 +316,8 @@ function startDriverTracking() {
             (position) => {
                 const { latitude, longitude, accuracy } = position.coords;
                 
-                // Update user location
                 userLocation = { lat: latitude, lng: longitude };
                 
-                // Update bus data with current position
                 if (busData[busId]) {
                     busData[busId].lat = latitude;
                     busData[busId].lng = longitude;
@@ -342,12 +325,8 @@ function startDriverTracking() {
                     busData[busId].status = "active";
                 }
                 
-                // Update user marker
                 updateUserPosition(latitude, longitude, accuracy);
-                
-                // Center map on user if they're being tracked
                 map.setView([latitude, longitude], 16);
-                
                 updateGPSStatus("active");
             },
             (error) => {
@@ -370,20 +349,16 @@ function stopDriverTracking() {
     
     const busId = driverCredentials[currentUser].busId;
     
-    // Set bus as inactive
     busActivityStatus[busId] = false;
     
-    // Update UI
     document.getElementById('stop-tracking').style.display = 'none';
     document.getElementById('start-tracking').style.display = 'block';
     
-    // Stop GPS tracking
     if (gpsWatchId !== null) {
         navigator.geolocation.clearWatch(gpsWatchId);
         gpsWatchId = null;
     }
     
-    // Remove user marker and accuracy circle
     if (userMarker) {
         map.removeLayer(userMarker);
         userMarker = null;
@@ -404,7 +379,6 @@ function trackBus() {
         return;
     }
     
-    // For simplicity, let's track the first available bus
     const availableBuses = Object.keys(busData).filter(id => busActivityStatus[id]);
     
     if (availableBuses.length === 0) {
@@ -415,10 +389,8 @@ function trackBus() {
     selectedBusId = availableBuses[0];
     const bus = busData[selectedBusId];
     
-    // Center map on selected bus
     map.setView([bus.lat, bus.lng], 16);
     
-    // Highlight the tracked bus with a special marker
     if (trackedBusMarker) {
         map.removeLayer(trackedBusMarker);
     }
@@ -439,7 +411,6 @@ function trackBus() {
 }
 
 function updateUserPosition(lat, lng, accuracy) {
-    // Create or update user marker
     const userIcon = L.divIcon({
         html: '<div class="user-marker"><i class="fas fa-user"></i></div>',
         className: 'user-marker-container',
@@ -453,7 +424,6 @@ function updateUserPosition(lat, lng, accuracy) {
         userMarker.setLatLng([lat, lng]);
     }
     
-    // Create or update accuracy circle
     if (!accuracyCircle) {
         accuracyCircle = L.circle([lat, lng], {
             radius: accuracy,
@@ -469,7 +439,7 @@ function updateUserPosition(lat, lng, accuracy) {
 }
 
 function filterBusList() {
-    const searchTerm = document.getElementById('bus-search').value.toLowerCase();
+    const searchTerm = document.getElementById('bus-search')?.value.toLowerCase();
     const busItems = document.querySelectorAll('.bus-item');
     
     busItems.forEach(item => {
@@ -506,29 +476,30 @@ function updateGPSStatus(status) {
     const indicator = document.getElementById('gps-indicator');
     const text = document.getElementById('gps-text');
     
-    indicator.classList.remove('gps-active', 'gps-inactive', 'gps-searching');
-    
-    switch(status) {
-        case "active":
-            indicator.classList.add('gps-active');
-            text.textContent = 'GPS Active';
-            break;
-        case "inactive":
-            indicator.classList.add('gps-inactive');
-            text.textContent = 'GPS Inactive';
-            break;
-        case "searching":
-            indicator.classList.add('gps-searching');
-            text.textContent = 'Searching...';
-            break;
-        case "unavailable":
-            indicator.classList.add('gps-inactive');
-            text.textContent = 'GPS Unavailable';
-            break;
-        case "error":
-            indicator.classList.add('gps-inactive');
-            text.textContent = 'GPS Error';
-            break;
+    if (indicator && text) {
+        indicator.classList.remove('gps-active', 'gps-inactive', 'gps-searching');
+        switch(status) {
+            case "active":
+                indicator.classList.add('gps-active');
+                text.textContent = 'GPS Active';
+                break;
+            case "inactive":
+                indicator.classList.add('gps-inactive');
+                text.textContent = 'GPS Inactive';
+                break;
+            case "searching":
+                indicator.classList.add('gps-searching');
+                text.textContent = 'Searching...';
+                break;
+            case "unavailable":
+                indicator.classList.add('gps-inactive');
+                text.textContent = 'GPS Unavailable';
+                break;
+            case "error":
+                indicator.classList.add('gps-inactive');
+                text.textContent = 'GPS Error';
+                break;
+        }
     }
 }
 
@@ -545,36 +516,37 @@ function showToast(message, duration = 3000) {
     const toast = document.getElementById('toast');
     const toastMessage = document.getElementById('toast-message');
     
-    toastMessage.textContent = message;
-    toast.classList.add('show');
-    
-    setTimeout(() => {
-        toast.classList.remove('show');
-    }, duration);
-}
-
-function updateConnectionStatus(status) {
-    const dot = document.getElementById('connection-dot');
-    const text = document.getElementById('connection-text');
-    
-    if (dot && text) {
-        dot.classList.remove('online', 'offline', 'connecting');
-        dot.classList.add(status);
-        
-        text.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+    if (toast && toastMessage) {
+        toastMessage.textContent = message;
+        toast.classList.add('show');
+        setTimeout(() => {
+            toast.classList.remove('show');
+        }, duration);
     }
 }
 
-async function loadBusData() {
+async function loadBusData(attempt = 1) {
+    if (!navigator.onLine) {
+        console.warn("Device is offline, using fallback data");
+        showToast("Device is offline. Using offline data.", 3000);
+        busData = { ...fallbackBusData };
+        updateBusList(busData);
+        for (const busId in busData) {
+            const bus = busData[busId];
+            updateBusMarker(busId, bus.lat, bus.lng, bus.status);
+        }
+        document.getElementById('last-update').textContent = new Date().toLocaleTimeString();
+        return;
+    }
+
+    let timeoutId;
     try {
         updateConnectionStatus('connecting');
         
-        // Create a proper timeout controller with error handling
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => {
-            // Provide specific error message when aborting
-            controller.abort(new Error(`Request timed out after 10000ms`));
-        }, 10000);
+        timeoutId = setTimeout(() => {
+            controller.abort(new Error("Request timed out after 30000ms"));
+        }, 30000);
         
         const response = await fetch(`${API_BASE_URL}/buses`, {
             signal: controller.signal,
@@ -591,82 +563,67 @@ async function loadBusData() {
         }
         
         const apiBusData = await response.json();
-        busData = { ...apiBusData };
+        if (!apiBusData || typeof apiBusData !== 'object') {
+            throw new Error("Invalid API response format");
+        }
         
+        busData = { ...apiBusData };
         updateBusList(busData);
         
         for (const busId in busData) {
             const bus = busData[busId];
-            let status = bus.status;
-            
+            let status = bus.status || "inactive";
             if (busActivityStatus[busId] === false) {
                 status = "inactive";
             }
-            
             updateBusMarker(busId, bus.lat, bus.lng, status);
         }
         
         document.getElementById('last-update').textContent = new Date().toLocaleTimeString();
         updateConnectionStatus('online');
-        retryCount = 0;
-        console.log("Bus data loaded successfully from API");
     } catch (error) {
-        // Clear timeout if it's still pending
         clearTimeout(timeoutId);
         
         if (error.name === 'AbortError') {
-            console.warn("Fetch timeout - using offline data:", error);
-            showToast("Server connection timeout. Using offline data.", 2000);
+            console.error("Fetch timeout:", error.message);
+            showToast(`Server connection timeout (attempt ${attempt}/${MAX_RETRIES}).`, 3000);
+        } else if (error.message.includes("HTTP error")) {
+            console.error("HTTP error:", error.message);
+            showToast(`Server error: ${error.message} (attempt ${attempt}/${MAX_RETRIES}).`, 3000);
         } else {
-            console.warn("Error fetching bus data - using offline data:", error);
-            showToast("Backend not reachable. Using offline data.", 2000);
+            console.error("Error fetching bus data:", error.message);
+            showToast(`Failed to fetch data: ${error.message} (attempt ${attempt}/${MAX_RETRIES}).`, 3000);
         }
         
         updateConnectionStatus('offline');
         
-        if (retryCount < MAX_RETRIES) {
-            retryCount++;
-            console.log(`Retrying fetch... Attempt ${retryCount}`);
-            setTimeout(loadBusData, 5000);
+        if (attempt < MAX_RETRIES) {
+            const delay = Math.min(INITIAL_RETRY_DELAY * Math.pow(2, attempt - 1), MAX_RETRY_DELAY);
+            console.log(`Retrying fetch in ${delay}ms... Attempt ${attempt + 1}/${MAX_RETRIES}`);
+            setTimeout(() => loadBusData(attempt + 1), delay);
             return;
-        } else {
-            console.log("Max retries reached, using offline data");
-            retryCount = 0;
         }
         
-        // Use fallback data but preserve any active driver tracking
-        const preservedBusData = { ...fallbackBusData };
-        
-        // If a driver is actively tracking, update their bus position
-        if (isLoggedIn && userRole === 'driver' && gpsWatchId !== null) {
-            const busId = driverCredentials[currentUser].busId;
-            if (userLocation) {
-                preservedBusData[busId] = {
-                    ...preservedBusData[busId],
-                    lat: userLocation.lat,
-                    lng: userLocation.lng,
-                    status: "active",
-                    lastUpdate: new Date()
-                };
-            }
-        }
-        
-        busData = preservedBusData;
-        updateBusList(preservedBusData);
-        
-        for (const busId in preservedBusData) {
-            const bus = preservedBusData[busId];
+        console.warn("Max retries reached, using fallback data");
+        showToast("Unable to connect to server. Using offline data.", 3000);
+        busData = { ...fallbackBusData };
+        updateBusList(busData);
+        for (const busId in busData) {
+            const bus = busData[busId];
             updateBusMarker(busId, bus.lat, bus.lng, bus.status);
         }
+        document.getElementById('last-update').textContent = new Date().toLocaleTimeString();
     }
 }
 
-// Add this helper function if you don't have it
 function updateConnectionStatus(status) {
-    const statusElement = document.getElementById('connection-status');
-    if (statusElement) {
-        statusElement.textContent = `Status: ${status}`;
-        statusElement.className = `connection-${status}`;
+    const dot = document.getElementById('connection-dot');
+    const text = document.getElementById('connection-text');
+    
+    if (dot && text) {
+        dot.classList.remove('online', 'offline', 'connecting');
+        dot.classList.add(status);
+        text.textContent = status.charAt(0).toUpperCase() + status.slice(1);
     }
 }
 
@@ -704,8 +661,9 @@ function updateBusMarker(busId, lat, lng, status) {
 
 function updateBusList(busData) {
     const busList = document.getElementById('bus-list');
+    if (!busList) return;
+    
     busList.innerHTML = '';
-
     let activeCount = 0;
     let onTimeCount = 0;
     let delayedCount = 0;
