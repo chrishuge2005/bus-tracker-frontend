@@ -21,8 +21,7 @@ let busActivityStatus = {
     "4": false
 };
 
-// FIXED: Added https:// to the API URL
-const API_BASE_URL = "https://bus-tracker-backend-production.up.railway.app";
+const API_BASE_URL = "bus-tracker-backend-production.up.railway.app";
 
 // Credentials
 const driverCredentials = {
@@ -566,18 +565,15 @@ function updateConnectionStatus(status) {
     }
 }
 
-// FIXED: loadBusData function with proper timeoutId scoping
 async function loadBusData() {
-    let timeoutId; // Declare timeoutId at function scope
-    
     try {
         updateConnectionStatus('connecting');
         
         // Create a proper timeout controller with error handling
         const controller = new AbortController();
-        timeoutId = setTimeout(() => {
+        const timeoutId = setTimeout(() => {
             // Provide specific error message when aborting
-            controller.abort();
+            controller.abort(new Error(`Request timed out after 10000ms`));
         }, 10000);
         
         const response = await fetch(`${API_BASE_URL}/buses`, {
@@ -616,12 +612,10 @@ async function loadBusData() {
         console.log("Bus data loaded successfully from API");
     } catch (error) {
         // Clear timeout if it's still pending
-        if (timeoutId) {
-            clearTimeout(timeoutId);
-        }
+        clearTimeout(timeoutId);
         
         if (error.name === 'AbortError') {
-            console.warn("Fetch timeout - using offline data");
+            console.warn("Fetch timeout - using offline data:", error);
             showToast("Server connection timeout. Using offline data.", 2000);
         } else {
             console.warn("Error fetching bus data - using offline data:", error);
@@ -664,6 +658,15 @@ async function loadBusData() {
             const bus = preservedBusData[busId];
             updateBusMarker(busId, bus.lat, bus.lng, bus.status);
         }
+    }
+}
+
+// Add this helper function if you don't have it
+function updateConnectionStatus(status) {
+    const statusElement = document.getElementById('connection-status');
+    if (statusElement) {
+        statusElement.textContent = `Status: ${status}`;
+        statusElement.className = `connection-${status}`;
     }
 }
 
