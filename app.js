@@ -578,23 +578,34 @@ function showToast(message, duration = 3000) {
     }, duration);
 }
 
+// Initialize a variable to keep track of the current abort controller
+let currentAbortController = null;
+
 async function loadBusData() {
+    // If there's a previous request still going, cancel it
+    if (currentAbortController) {
+        currentAbortController.abort();
+    }
+
     try {
-        // First check if we're online and the API is reachable
+        // First check if we're online
         if (!navigator.onLine) {
             throw new Error("You are offline. Using fallback data.");
         }
 
         const API_BASE_URL = "https://bus-tracker-backend-96uu.onrender.com";
-        const timeoutDuration = 10000; // Reduced from 30s to 10s
+        const timeoutDuration = 10000; // 10 seconds
         
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), timeoutDuration);
+        // Create a new AbortController for THIS request
+        currentAbortController = new AbortController();
+        const timeoutId = setTimeout(() => {
+            currentAbortController.abort();
+        }, timeoutDuration);
         
         // Test if backend is reachable first
         try {
             const testResponse = await fetch(`${API_BASE_URL}/health`, {
-                signal: controller.signal,
+                signal: currentAbortController.signal,
                 method: 'HEAD'
             });
             
@@ -606,16 +617,17 @@ async function loadBusData() {
             throw new Error("Backend server is not reachable");
         }
         
-        clearTimeout(timeoutId);
-
-        // Now fetch actual bus data
+        // Now fetch actual bus data WITH THE SAME SIGNAL (timeout still active)
         const response = await fetch(`${API_BASE_URL}/buses`, {
-            signal: controller.signal,
+            signal: currentAbortController.signal,
             headers: {
                 'Cache-Control': 'no-cache',
                 'Pragma': 'no-cache'
             }
         });
+        
+        // Clear timeout only after BOTH requests succeed
+        clearTimeout(timeoutId);
         
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         
@@ -639,32 +651,37 @@ async function loadBusData() {
         console.log("Bus data successfully loaded from API");
         
     } catch (error) {
-        console.warn("Using fallback data:", error.message);
-        
-        // Use fallback data with some randomization to simulate real data
-        const now = new Date();
-        busData = { ...fallbackBusData };
-        
-        // Simulate some movement for demo purposes
-        for (const busId in busData) {
-            // Add small random movement to make it look live
-            busData[busId].lat += (Math.random() - 0.5) * 0.001;
-            busData[busId].lng += (Math.random() - 0.5) * 0.001;
-            busData[busId].lastUpdate = new Date(now.getTime() - Math.random() * 120000);
+        // Only show the error if it was NOT an abort
+        if (error.name !== 'AbortError') {
+            console.warn("Using fallback data:", error.message);
             
-            // Randomly set some buses as active for demo
-            if (Math.random() > 0.5) {
-                busData[busId].status = ["on-time", "delayed", "arriving"][Math.floor(Math.random() * 3)];
+            // Use fallback data with some randomization to simulate real data
+            const now = new Date();
+            busData = { ...fallbackBusData };
+            
+            // Simulate some movement for demo purposes
+            for (const busId in busData) {
+                // Add small random movement to make it look live
+                busData[busId].lat += (Math.random() - 0.5) * 0.001;
+                busData[busId].lng += (Math.random() - 0.5) * 0.001;
+                busData[busId].lastUpdate = new Date(now.getTime() - Math.random() * 120000);
+                
+                // Randomly set some buses as active for demo
+                if (Math.random() > 0.5) {
+                    busData[busId].status = ["on-time", "delayed", "arriving"][Math.floor(Math.random() * 3)];
+                }
             }
+            
+            updateBusList(busData);
+            for (const busId in busData) {
+                const bus = busData[busId];
+                updateBusMarker(busId, bus.lat, bus.lng, bus.status);
+            }
+            
+            showToast("Using demo data - backend not available", 2000);
+        } else {
+            console.log("Request was aborted as intended (timeout).");
         }
-        
-        updateBusList(busData);
-        for (const busId in busData) {
-            const bus = busData[busId];
-            updateBusMarker(busId, bus.lat, bus.lng, bus.status);
-        }
-        
-        showToast("Using demo data - backend not available", 2000);
     }
 }
 
