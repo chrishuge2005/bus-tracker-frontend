@@ -76,6 +76,33 @@ function init() {
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         attribution: '© OpenStreetMap contributors',
     }).addTo(map);
+
+    // Try to get the user's current location
+if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+        (position) => {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+
+            console.log("Your location:", lat, lng);
+
+            // Center the map on the user's location
+            map.setView([lat, lng], 15);
+
+            // Add a marker for the user
+            L.marker([lat, lng])
+                .addTo(map)
+                .bindPopup("You are here!")
+                .openPopup();
+        },
+        (error) => {
+            console.error("Error getting location:", error.message);
+        }
+    );
+} else {
+    console.error("Geolocation is not supported by this browser.");
+}
+
     
     checkGPSAvailability();
     setupEventListeners();
