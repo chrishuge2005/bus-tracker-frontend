@@ -35,10 +35,38 @@ const studentCredentials = {
 };
 
 const fallbackBusData = {
-    "1": { lat: 12.9716, lng: 77.5946, name: "Campus Shuttle A", status: "inactive", lastUpdate: new Date() },
-    "2": { lat: 12.9352, lng: 77.6245, name: "North Route", status: "inactive", lastUpdate: new Date(Date.now() - 120000) },
-    "3": { lat: 12.9876, lng: 77.5512, name: "South Route", status: "inactive", lastUpdate: new Date(Date.now() - 30000) },
-    "4": { lat: 12.9563, lng: 77.5768, name: "East Route", status: "inactive", lastUpdate: new Date(Date.now() - 60000) }
+    "1": { 
+        lat: 12.9716 + (Math.random() - 0.5) * 0.01, 
+        lng: 77.5946 + (Math.random() - 0.5) * 0.01, 
+        name: "Campus Shuttle A", 
+        status: "on-time", 
+        lastUpdate: new Date(),
+        route: "Main Campus Loop"
+    },
+    "2": { 
+        lat: 12.9352 + (Math.random() - 0.5) * 0.01, 
+        lng: 77.6245 + (Math.random() - 0.5) * 0.01, 
+        name: "North Route", 
+        status: "delayed", 
+        lastUpdate: new Date(Date.now() - 120000),
+        route: "North Campus Express"
+    },
+    "3": { 
+        lat: 12.9876 + (Math.random() - 0.5) * 0.01, 
+        lng: 77.5512 + (Math.random() - 0.5) * 0.01, 
+        name: "South Route", 
+        status: "arriving", 
+        lastUpdate: new Date(Date.now() - 30000),
+        route: "South Residence Halls"
+    },
+    "4": { 
+        lat: 12.9563 + (Math.random() - 0.5) * 0.01, 
+        lng: 77.5768 + (Math.random() - 0.5) * 0.01, 
+        name: "East Route", 
+        status: "on-time", 
+        lastUpdate: new Date(Date.now() - 60000),
+        route: "East Campus Connector"
+    }
 };
 
 // Initialize application
@@ -552,15 +580,42 @@ function showToast(message, duration = 3000) {
 
 async function loadBusData() {
     try {
-        // Add timeout to fetch request
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 seconds
+        // First check if we're online and the API is reachable
+        if (!navigator.onLine) {
+            throw new Error("You are offline. Using fallback data.");
+        }
+
+        const API_BASE_URL = "https://bus-tracker-backend-96uu.onrender.com";
+        const timeoutDuration = 10000; // Reduced from 30s to 10s
         
-        const response = await fetch(`${API_BASE_URL}/buses`, {
-            signal: controller.signal
-        });
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeoutDuration);
+        
+        // Test if backend is reachable first
+        try {
+            const testResponse = await fetch(`${API_BASE_URL}/health`, {
+                signal: controller.signal,
+                method: 'HEAD'
+            });
+            
+            if (!testResponse.ok) {
+                throw new Error("Backend not available");
+            }
+        } catch (testError) {
+            // If health check fails, use fallback immediately
+            throw new Error("Backend server is not reachable");
+        }
         
         clearTimeout(timeoutId);
+
+        // Now fetch actual bus data
+        const response = await fetch(`${API_BASE_URL}/buses`, {
+            signal: controller.signal,
+            headers: {
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
+            }
+        });
         
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         
@@ -581,21 +636,35 @@ async function loadBusData() {
         }
         
         document.getElementById('last-update').textContent = new Date().toLocaleTimeString();
+        console.log("Bus data successfully loaded from API");
+        
     } catch (error) {
-        if (error.name === 'AbortError') {
-            console.error("Fetch timeout:", error);
-            showToast("Server connection timeout. Using offline data.");
-        } else {
-            console.error("Error fetching bus data:", error);
-            showToast("Backend not reachable. Using offline data.");
+        console.warn("Using fallback data:", error.message);
+        
+        // Use fallback data with some randomization to simulate real data
+        const now = new Date();
+        busData = { ...fallbackBusData };
+        
+        // Simulate some movement for demo purposes
+        for (const busId in busData) {
+            // Add small random movement to make it look live
+            busData[busId].lat += (Math.random() - 0.5) * 0.001;
+            busData[busId].lng += (Math.random() - 0.5) * 0.001;
+            busData[busId].lastUpdate = new Date(now.getTime() - Math.random() * 120000);
+            
+            // Randomly set some buses as active for demo
+            if (Math.random() > 0.5) {
+                busData[busId].status = ["on-time", "delayed", "arriving"][Math.floor(Math.random() * 3)];
+            }
         }
         
-        busData = { ...fallbackBusData };
-        updateBusList(fallbackBusData);
-        for (const busId in fallbackBusData) {
-            const bus = fallbackBusData[busId];
+        updateBusList(busData);
+        for (const busId in busData) {
+            const bus = busData[busId];
             updateBusMarker(busId, bus.lat, bus.lng, bus.status);
         }
+        
+        showToast("Using demo data - backend not available", 2000);
     }
 }
 
