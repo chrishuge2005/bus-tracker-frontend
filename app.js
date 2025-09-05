@@ -144,7 +144,11 @@
                         userLocation = { lat: 12.9716, lng: 77.5946 };
                         loadBusData();
                     },
-                    { timeout: 10000, enableHighAccuracy: false }
+                    {
+                        enableHighAccuracy: true,   // use GPS if available
+                        timeout: 20000,             // wait up to 20s
+                        maximumAge: 0               // don’t reuse old location
+                    }
                 );
             } else {
                 document.getElementById('location-permission').style.display = 'block';
