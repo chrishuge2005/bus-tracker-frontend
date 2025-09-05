@@ -631,7 +631,7 @@
                 }
 
                 const API_BASE_URL = "https://bus-tracker-backend-96uu.onrender.com";
-                const timeoutDuration = 10000; // 10 seconds
+                const timeoutDuration = 60000; // 10 seconds
                 
                 // Create a new AbortController for THIS request
                 currentAbortController = new AbortController();
