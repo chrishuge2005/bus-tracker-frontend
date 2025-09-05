@@ -18,8 +18,7 @@
             "4": false
         };
 
-        const API_BASE_URL = "https://bus-tracker-backend-96uu.onrender.com";
-
+        
         // Credentials
         const driverCredentials = {
             "driver1": { password: "pass1", busId: "1", name: "John Smith" },
@@ -251,6 +250,9 @@
                 document.getElementById('username').textContent = driverCredentials[driverId].name;
                 document.getElementById('driver-controls').style.display = 'flex';
                 document.getElementById('student-controls').style.display = 'none';
+                // ✅ Save the selected bus for tracking
+                selectedBusId = busId;
+
                 
                 // Close modal
                 document.getElementById('driver-login-modal').style.display = 'none';
@@ -461,44 +463,39 @@
         }
 
         function trackBus() {
-            if (!isLoggedIn || userRole !== 'student') {
-                showToast("Please login as a student first");
-                return;
-            }
-            
-            // For simplicity, let's track the first available bus
-            const availableBuses = Object.keys(busData).filter(id => busActivityStatus[id]);
-            
-            if (availableBuses.length === 0) {
-                showToast("No active buses available for tracking");
-                return;
-            }
-            
-            selectedBusId = availableBuses[0];
-            const bus = busData[selectedBusId];
-            
-            // Center map on selected bus
-            map.setView([bus.lat, bus.lng], 16);
-            
-            // Highlight the tracked bus with a special marker
-            if (trackedBusMarker) {
-                map.removeLayer(trackedBusMarker);
-            }
-            
-            const trackedBusIcon = L.divIcon({
-                html: '<div class="tracked-bus-marker"><i class="fas fa-bus"></i></div>',
-                className: 'tracked-bus-marker-container',
-                iconSize: [32, 32],
-                iconAnchor: [16, 16]
-            });
-            
-            trackedBusMarker = L.marker([bus.lat, bus.lng], { icon: trackedBusIcon })
-                .addTo(map)
-                .bindPopup(`<strong>Tracked Bus ${selectedBusId}</strong><br>${bus.name}`)
-                .openPopup();
-                
-            showToast(`Now tracking Bus ${selectedBusId}`);
-        }
+    if (!isLoggedIn || userRole !== 'student') {
+        showToast("Please login as a student first");
+        return;
+    }
+
+    // ✅ Use the bus selected during login
+    const busId = selectedBusId;
+    if (!busId || !busData[busId]) {
+        showToast("Selected bus is not active or available");
+        return;
+    }
+
+    const bus = busData[busId];
+    map.setView([bus.lat, bus.lng], 16);
+
+    if (trackedBusMarker) {
+        map.removeLayer(trackedBusMarker);
+    }
+
+    const trackedBusIcon = L.divIcon({
+        html: '<div class="tracked-bus-marker"><i class="fas fa-bus"></i></div>',
+        className: 'tracked-bus-marker-container',
+        iconSize: [32, 32],
+        iconAnchor: [16, 16]
+    });
+
+    trackedBusMarker = L.marker([bus.lat, bus.lng], { icon: trackedBusIcon })
+        .addTo(map)
+        .bindPopup(`<strong>Tracked Bus ${busId}</strong><br>${bus.name}`)
+        .openPopup();
+
+    showToast(`Now tracking Bus ${busId}`);
+}
 
         function updateUserPosition(lat, lng, accuracy) {
             // Create or update user marker
