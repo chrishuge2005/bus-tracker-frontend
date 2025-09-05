@@ -69,6 +69,37 @@ const fallbackBusData = {
     }
 };
 
+// Add this new function to send location updates to the backend
+async function sendLocationToServer(busId, lat, lng) {
+    // If not online or not a driver, do nothing
+    if (!navigator.onLine || userRole !== 'driver') return;
+
+    const payload = {
+        busId: busId,
+        lat: lat,
+        lng: lng,
+        timestamp: new Date().toISOString()
+    };
+
+    try {
+        // Send the update to the backend API
+        const response = await fetch(`${API_BASE_URL}/update-location`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            console.error("Failed to send location to server");
+        }
+    } catch (error) {
+        console.error("Error sending location:", error);
+        // Don't show a toast here, or it will spam the driver
+    }
+}
+
 // Initialize application
 function init() {
     // Initialize map with default location
@@ -366,6 +397,9 @@ function startDriverTracking() {
                     busData[busId].lastUpdate = new Date();
                     busData[busId].status = "active";
                 }
+                
+                // Send the live location to the backend for students to see
+                sendLocationToServer(busId, latitude, longitude);
                 
                 // Update user marker
                 updateUserPosition(latitude, longitude, accuracy);
@@ -729,7 +763,7 @@ function updateBusList(busData) {
         const bus = busData[busId];
         const busItem = document.createElement('div');
         busItem.className = 'bus-item';
-        busItem.dataset.busId = busId;
+        busItem.dataset busId = busId;
 
         let status = bus.status || "inactive";
         if (busActivityStatus[busId] === true) {
